@@ -1,69 +1,80 @@
+import Link from "next/link";
 import Image from "next/image";
+import { dishes } from "@/lib/dishes";
 
-export default function Home() {
+export const dynamic = "force-static";
+
+export default function HomePage() {
+  const featuredDish = dishes[0];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <section className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
+      <div className="grid items-center gap-8 rounded-3xl bg-gradient-to-br from-amber-100 via-orange-50 to-red-50 p-8 shadow-lg md:grid-cols-2 md:p-12">
+        <div>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">
+            Fresh Ethiopian flavors
           </p>
+          <h1 className="text-4xl font-black tracking-tight text-stone-900 md:text-6xl">
+            Addis Eats
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-stone-700">
+            Comforting stews, colorful platters, and slow-cooked classics—served with a warm welcome and a modern dining experience.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Link href="/menu" className="rounded-full bg-amber-700 px-6 py-3 font-semibold text-white shadow-md transition hover:bg-amber-800">
+              Explore the menu
+            </Link>
+            <Link href="/about" className="rounded-full border border-stone-300 bg-white px-6 py-3 font-semibold text-stone-800 transition hover:border-stone-400">
+              Learn our story
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="rounded-2xl bg-stone-900 p-6 text-white shadow-xl">
+          <Image
+            src={featuredDish.image}
+            alt={featuredDish.name}
+            width={640}
+            height={420}
+            priority
+            className="mb-6 h-56 w-full rounded-xl object-cover"
+          />
+          <p className="text-sm uppercase tracking-[0.2em] text-amber-300">Today&apos;s highlight</p>
+          <h2 className="mt-3 text-3xl font-bold">{featuredDish.name}</h2>
+          <p className="mt-3 text-stone-200">
+            {featuredDish.description}
+          </p>
+          <div className="mt-6 flex items-center justify-between rounded-xl bg-white/10 px-4 py-3">
+            <span>Price</span>
+            <span className="text-xl font-bold text-amber-300">{featuredDish.price} ETB</span>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-stone-200">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">Contact</p>
+        <h2 className="mt-3 text-3xl font-black text-stone-900">Visit or call Addis Eats</h2>
+
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
+          <div className="rounded-2xl bg-stone-50 p-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Location</p>
+            <p className="mt-3 text-lg font-bold text-stone-900">Addis Ababa, Ethiopia</p>
+            <p className="mt-2 text-stone-600">Bole Road, near the city center</p>
+          </div>
+
+          <div className="rounded-2xl bg-stone-50 p-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Phone</p>
+            <p className="mt-3 text-lg font-bold text-stone-900">+251 11 222 3344</p>
+            <p className="mt-2 text-stone-600">Open for orders and reservations</p>
+          </div>
+
+          <div className="rounded-2xl bg-stone-50 p-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Hours</p>
+            <p className="mt-3 text-lg font-bold text-stone-900">Mon–Sun</p>
+            <p className="mt-2 text-stone-600">9:00 AM – 11:00 PM</p>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
