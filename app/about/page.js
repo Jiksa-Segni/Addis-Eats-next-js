@@ -1,4 +1,13 @@
-export const dynamic = "force-static";
+export const metadata = {
+  title: "About Our Ethiopian Restaurant",
+  description:
+    "Learn the story behind Addis Eats — a restaurant dedicated to authentic Ethiopian cooking, warm hospitality, and freshly prepared traditional dishes in Addis Ababa.",
+  openGraph: {
+    title: "About Addis Eats",
+    description:
+      "Discover the people and passion behind Addis Eats, serving traditional Ethiopian food in Addis Ababa.",
+  },
+};
 
 export default function AboutPage() {
   return (

@@ -2,6 +2,17 @@ import { redirect } from "next/navigation";
 import SearchBox from "./SearchBox";
 import { getDishesPage } from "@/lib/dishes";
 
+export const metadata = {
+  title: "Ethiopian Restaurant Menu",
+  description:
+    "Browse the full Addis Eats menu — Doro Wet, Kitfo, Shiro, Tibs, fresh juices, coffee, and more. Filter, search, and add dishes to your cart.",
+  openGraph: {
+    title: "Addis Eats Menu — Ethiopian Food",
+    description:
+      "Explore every dish on the Addis Eats menu and order your favourites for delivery in Addis Ababa.",
+  },
+};
+
 export const revalidate = 3600;
 
 export default async function MenuPage({ searchParams }) {

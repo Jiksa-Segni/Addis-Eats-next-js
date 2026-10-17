@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCartFavorites } from "../providers";
 
+// Cart is account-specific and transactional — not indexed by search engines.
 export const dynamic = "force-dynamic";
 
 export default function CartPage() {
