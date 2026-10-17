@@ -2,6 +2,12 @@ import { redirect } from "next/navigation";
 import SearchBox from "./SearchBox";
 import { getDishesPage } from "@/lib/dishes";
 
+export const metadata = {
+  title: "Ethiopian Restaurant Menu",
+  description:
+    "Browse the Addis Eats menu of Ethiopian favorites, including Doro Wet, Kitfo, Shiro, Tibs, fresh juices, and more.",
+};
+
 export const revalidate = 3600;
 
 export default async function MenuPage({ searchParams }) {

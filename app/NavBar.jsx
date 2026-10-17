@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "./actions";
 import { useCartFavorites } from "./providers";
 
 const navItems = [
@@ -10,12 +11,29 @@ const navItems = [
   { href: "/menu", label: "Menu" },
   { href: "/cart", label: "Cart" },
   { href: "/checkout", label: "Checkout" },
-  { href: "/kitchen", label: "Kitchen" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
-  const { user, totalItems, signOut } = useCartFavorites();
+  const router = useRouter();
+  const { user, totalItems, signIn: updateUser } = useCartFavorites();
+  const visibleItems = [
+    ...navItems,
+    ...(user?.role === "customer" ? [{ href: "/orders", label: "Orders" }] : []),
+    ...(user?.role === "admin"
+      ? [
+          { href: "/kitchen", label: "Kitchen" },
+          { href: "/kitchen/items", label: "Manage items" },
+        ]
+      : []),
+  ];
+
+  async function handleSignOut() {
+    await signOut();
+    updateUser(null);
+    router.replace("/");
+    router.refresh();
+  }
 
   return (
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm">
@@ -25,7 +43,7 @@ export default function NavBar() {
         </Link>
 
         <div className="hidden items-center gap-3 text-sm font-medium text-stone-700 md:flex md:gap-5">
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -37,6 +55,9 @@ export default function NavBar() {
         </div>
 
         <div className="flex items-center gap-3 text-sm font-medium text-stone-700">
+          <Link href="/#contact" className="transition hover:text-amber-700">
+            Contact
+          </Link>
           <Link href="/cart" className="rounded-full bg-stone-100 px-3 py-2 transition hover:bg-stone-200">
             Cart ({totalItems})
           </Link>
@@ -46,7 +67,7 @@ export default function NavBar() {
               <span className="hidden sm:inline">Hi, {user.name}</span>
               <button
                 type="button"
-                onClick={signOut}
+                onClick={handleSignOut}
                 className="rounded-full border border-stone-300 px-3 py-2 transition hover:border-stone-500"
               >
                 Sign out

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
-import { dishes } from "@/lib/dishes";
+import { getDishes } from "@/lib/dishes";
 
-export const dynamic = "force-static";
+export const metadata = {
+  title: "Ethiopian Food in Addis Ababa",
+  description:
+    "Enjoy authentic Ethiopian food in Addis Ababa. Explore Doro Wet, Kitfo, Shiro, Tibs, and more, freshly prepared at Addis Eats.",
+};
 
-export default function HomePage() {
-  const featuredDish = dishes[0];
+export default async function HomePage() {
+  const availableDishes = await getDishes();
+  const featuredDish = availableDishes[0];
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
@@ -30,6 +35,7 @@ export default function HomePage() {
           </div>
         </div>
 
+        {featuredDish ? (
         <div className="rounded-2xl bg-stone-900 p-6 text-white shadow-xl">
           <Image
             src={featuredDish.image}
@@ -49,9 +55,15 @@ export default function HomePage() {
             <span className="text-xl font-bold text-amber-300">{featuredDish.price} ETB</span>
           </div>
         </div>
+        ) : (
+          <div className="rounded-2xl bg-stone-900 p-6 text-white shadow-xl">
+            <p className="text-lg font-bold">Our menu is being refreshed.</p>
+            <p className="mt-3 text-stone-200">Please check back soon for today&apos;s available dishes.</p>
+          </div>
+        )}
       </div>
 
-      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-stone-200">
+      <div id="contact" className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-stone-200">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">Contact</p>
         <h2 className="mt-3 text-3xl font-black text-stone-900">Visit or call Addis Eats</h2>
 

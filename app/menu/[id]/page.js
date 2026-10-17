@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getDishById, getDishes } from "@/lib/dishes";
 
-export const revalidate = 3600;
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   const dishes = await getDishes();

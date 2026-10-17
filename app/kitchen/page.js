@@ -1,5 +1,8 @@
 import { updateKitchenOrderStatus } from "../actions";
+import { getSession } from "@/lib/auth";
 import { getOrders } from "@/lib/orders";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +14,22 @@ const nextStatuses = {
   cancelled: [],
 };
 
-export default function KitchenPage() {
-  const orders = getOrders().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+export default async function KitchenPage() {
+  const session = await getSession();
+  if (session?.role !== "admin") {
+    redirect(session ? "/" : "/signin?next=%2Fkitchen");
+  }
+
+  const orders = getOrders().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">Staff area</p>
       <h1 className="mt-3 text-4xl font-black text-stone-900">Kitchen</h1>
       <p className="mt-3 text-stone-600">View incoming orders and move them through the kitchen workflow.</p>
+      <Link href="/kitchen/items" className="mt-5 inline-block rounded-full bg-amber-700 px-5 py-3 font-semibold text-white transition hover:bg-amber-800">
+        Manage menu items
+      </Link>
 
       <div className="mt-8 space-y-5">
         {orders.length === 0 ? (

@@ -1,4 +1,8 @@
-export const dynamic = "force-static";
+export const metadata = {
+  title: "About Our Ethiopian Restaurant",
+  description:
+    "Learn the story behind Addis Eats, bringing the warmth of Ethiopian hospitality and freshly prepared traditional dishes to Addis Ababa.",
+};
 
 export default function AboutPage() {
   return (
