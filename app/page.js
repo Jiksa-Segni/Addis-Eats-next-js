@@ -19,6 +19,10 @@ export default async function HomePage() {
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLd(restaurantSchema)}
+      />
       <div className="grid items-center gap-8 rounded-3xl bg-gradient-to-br from-amber-100 via-orange-50 to-red-50 p-8 shadow-lg md:grid-cols-2 md:p-12">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">
