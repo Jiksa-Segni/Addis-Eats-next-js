@@ -2,12 +2,46 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getDishById, getDishes } from "@/lib/dishes";
+import { jsonLd, siteUrl } from "../../seo";
 
 export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   const dishes = await getDishes();
   return dishes.map((dish) => ({ id: dish.id }));
+}
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const dish = await getDishById(id);
+  if (!dish) {
+    return {};
+  }
+
+  const title = `${dish.name} | Ethiopian Dish`;
+  const description = `${dish.description} Order ${dish.name} freshly prepared at Addis Eats in Addis Ababa.`;
+  const imageUrl = new URL(dish.image, siteUrl).toString();
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/menu/${dish.id}`,
+    },
+    openGraph: {
+      type: "website",
+      title: `${title} | Addis Eats`,
+      description,
+      url: `/menu/${dish.id}`,
+      images: [{ url: imageUrl, alt: `${dish.name}, freshly prepared at Addis Eats` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | Addis Eats`,
+      description,
+      images: [imageUrl],
+    },
+  };
 }
 
 export default async function DishPage({ params }) {
@@ -18,8 +52,29 @@ export default async function DishPage({ params }) {
     notFound();
   }
 
+  const dishSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: dish.name,
+    description: dish.description,
+    image: new URL(dish.image, siteUrl).toString(),
+    offers: {
+      "@type": "Offer",
+      price: dish.price,
+      priceCurrency: "ETB",
+      availability: "https://schema.org/InStock",
+      url: new URL(`/menu/${dish.id}`, siteUrl).toString(),
+      seller: {
+        "@type": "Restaurant",
+        name: "Addis Eats",
+        url: siteUrl,
+      },
+    },
+  };
+
   return (
     <article className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(dishSchema)} />
       <Image
         src={dish.image}
         alt={dish.name}

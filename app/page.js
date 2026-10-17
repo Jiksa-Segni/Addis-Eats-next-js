@@ -1,19 +1,72 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getDishes } from "@/lib/dishes";
+import { createPageMetadata, jsonLd, shareImage, siteUrl } from "./seo";
 
-export const metadata = {
+export const metadata = createPageMetadata({
   title: "Ethiopian Food in Addis Ababa",
   description:
     "Enjoy authentic Ethiopian food in Addis Ababa. Explore Doro Wet, Kitfo, Shiro, Tibs, and more, freshly prepared at Addis Eats.",
-};
+  path: "/",
+  imageAlt: "Ethiopian Doro Wet at Addis Eats restaurant in Addis Ababa",
+});
 
 export default async function HomePage() {
   const availableDishes = await getDishes();
   const featuredDish = availableDishes[0];
+  const restaurantSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Restaurant",
+        "@id": `${siteUrl}/#restaurant`,
+        name: "Addis Eats",
+        url: siteUrl,
+        image: new URL(shareImage, siteUrl).toString(),
+        description:
+          "Authentic Ethiopian food in Addis Ababa, including Doro Wet, Kitfo, Shiro, and Tibs.",
+        servesCuisine: "Ethiopian",
+        telephone: "+251112223344",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "Bole Road, near the city center",
+          addressLocality: "Addis Ababa",
+          addressCountry: "ET",
+        },
+        openingHoursSpecification: {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ],
+          opens: "09:00",
+          closes: "23:00",
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: "Addis Eats",
+        description:
+          "Discover authentic Ethiopian food in Addis Ababa and order freshly prepared favorites online.",
+        inLanguage: "en",
+        publisher: { "@id": `${siteUrl}/#restaurant` },
+      },
+    ],
+  };
 
   return (
     <section className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLd(restaurantSchema)}
+      />
       <div className="grid items-center gap-8 rounded-3xl bg-gradient-to-br from-amber-100 via-orange-50 to-red-50 p-8 shadow-lg md:grid-cols-2 md:p-12">
         <div>
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">

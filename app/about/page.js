@@ -1,8 +1,11 @@
-export const metadata = {
+import { createPageMetadata } from "../seo";
+
+export const metadata = createPageMetadata({
   title: "About Our Ethiopian Restaurant",
   description:
     "Learn the story behind Addis Eats, bringing the warmth of Ethiopian hospitality and freshly prepared traditional dishes to Addis Ababa.",
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

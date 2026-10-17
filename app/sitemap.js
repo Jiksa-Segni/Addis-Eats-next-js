@@ -1,9 +1,9 @@
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+import { getDishes } from "@/lib/dishes";
+import { shareImage, siteUrl } from "./seo";
 
-export default function sitemap() {
+export default async function sitemap() {
   const lastModified = new Date();
+  const dishes = await getDishes();
 
   return [
     {
@@ -11,12 +11,14 @@ export default function sitemap() {
       lastModified,
       changeFrequency: "weekly",
       priority: 1,
+      images: [new URL(shareImage, siteUrl).toString()],
     },
     {
       url: new URL("/menu", siteUrl).toString(),
       lastModified,
       changeFrequency: "daily",
       priority: 0.9,
+      images: dishes.map((dish) => new URL(dish.image, siteUrl).toString()),
     },
     {
       url: new URL("/about", siteUrl).toString(),
@@ -24,5 +26,12 @@ export default function sitemap() {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    ...dishes.map((dish) => ({
+      url: new URL(`/menu/${dish.id}`, siteUrl).toString(),
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      images: [new URL(dish.image, siteUrl).toString()],
+    })),
   ];
 }

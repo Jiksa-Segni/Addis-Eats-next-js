@@ -3,11 +3,8 @@ import Link from "next/link";
 import NavBar from "./NavBar";
 import { Providers } from "./providers";
 import { getSession } from "@/lib/auth";
+import { shareImage, siteUrl } from "./seo";
 import "./globals.css";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,6 +18,9 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "Addis Eats | Ethiopian Food in Addis Ababa",
     template: "%s | Addis Eats",
@@ -36,18 +36,31 @@ export const metadata = {
     "Kitfo",
     "Addis Eats",
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
     locale: "en_ET",
     siteName: "Addis Eats",
+    url: "/",
     title: "Addis Eats | Ethiopian Food in Addis Ababa",
     description:
       "Explore fresh Ethiopian favorites and order online from Addis Eats in Addis Ababa.",
     images: [
       {
-        url: "/images/dorowet.jpg",
+        url: shareImage,
         width: 1024,
         height: 680,
+        type: "image/jpeg",
         alt: "Freshly prepared Ethiopian Doro Wet served at Addis Eats",
       },
     ],
@@ -57,7 +70,7 @@ export const metadata = {
     title: "Addis Eats | Ethiopian Food in Addis Ababa",
     description:
       "Explore fresh Ethiopian favorites and order online from Addis Eats in Addis Ababa.",
-    images: ["/images/dorowet.jpg"],
+    images: [shareImage],
   },
 };
 
