@@ -1,94 +1,100 @@
 # Addis Eats
 
-A Next.js web application for an Ethiopian restaurant in Addis Ababa. Customers can browse the menu, add dishes to a cart, and place delivery orders. Kitchen staff can manage the menu and update order statuses. An analytics dashboard shows revenue and order trends.
+A full-featured Ethiopian restaurant ordering platform built with **Next.js 16 App Router**, React 19, Tailwind CSS 4, and a custom HMAC-signed session authentication system.
 
 ---
 
-## Features
+## Overview
 
-- Browse and search a paginated menu of Ethiopian dishes
-- Add dishes to a persistent cart (localStorage)
-- Mark dishes as favourites
-- Place delivery orders with address selection
-- Live order status tracking (polls every 5 seconds)
-- Order history with sortable, paged table
-- CSV export of order history
-- Admin kitchen view — manage order workflow
-- Admin menu management — add, enable/disable, remove dishes
-- Analytics dashboard — revenue by neighbourhood (bar chart), orders over time (line chart)
-- SEO — per-page metadata, Open Graph images, JSON-LD structured data, sitemap, robots
-- Accessible UI — `aria-live`, `aria-label`, keyboard navigation throughout
+Addis Eats lets customers browse an Ethiopian menu, add dishes to a cart, place delivery orders, and track their order in real time on an animated Leaflet map. Restaurant staff log in to a separate kitchen dashboard to advance orders through the kitchen workflow and manage menu items.
+
+### Main Features
+
+- **Menu** — paginated dish listing with debounced live search
+- **Cart & Favourites** — persistent via localStorage, cross-tab sync
+- **Checkout** — server-validated order placement with Zod schemas
+- **Live order tracking** — SWR polling + SVG map on `/orders/[id]`, Leaflet map + SSE stream on `/track/[id]`
+- **Order history** — sortable, paginated table with CSV export
+- **Kitchen dashboard** — staff-only order workflow management
+- **Admin item management** — add, enable/disable, and remove menu items
+- **Revenue dashboard** — Recharts bar + line charts with accessible data tables
+- **SEO** — full Open Graph metadata, per-dish OG images, JSON-LD structured data, sitemap, robots.txt
+- **Social sharing** — 1200×630 OG images generated at build time; works on Telegram, WhatsApp, Twitter/X, Facebook, LinkedIn
 
 ---
 
 ## Technologies
 
-| Library | Version | Purpose |
+| Package | Version | Purpose |
 |---|---|---|
-| Next.js | 16.4.0 | App Router, Server Actions, SSR/ISR |
-| React | 19.3.0 | UI |
-| Tailwind CSS | 4.x | Styling |
-| SWR | 2.x | Client-side data fetching and polling |
-| Zod | 4.x | Schema validation |
-| Recharts | 3.x | Dashboard charts |
+| next | 16.4.0 | App Router framework |
+| react | 19.3.0 | UI library |
+| react-dom | 19.3.0 | DOM renderer |
+| tailwindcss | ^4 | Utility-first CSS |
+| swr | ^2.5.1 | Client-side data fetching and polling |
+| zod | ^4.6.5 | Server-side schema validation |
+| recharts | ^3.1.0 | Revenue bar and line charts |
+| leaflet | 1.9.4 | Interactive delivery map |
+
+No database is used. All data is stored in in-memory Maps on `globalThis` and is reset on server restart. This is intentional for a classroom/demo context.
 
 ---
 
 ## Requirements
 
-- Node.js 18 or later
-- npm 9 or later
+- Node.js 18.17 or later (Node 20+ recommended)
+- npm 9+ (or compatible package manager)
 
 ---
 
 ## Installation
 
 ```bash
-# 1. Enter the project directory
-cd Day_48/addis-eats-next
+# 1. Clone the repository
+git clone <repository-url>
+cd Addis-Eats-next-js
 
 # 2. Install dependencies
 npm install
 
-# 3. Copy and fill in environment variables
+# 3. Set up environment variables
+cp .env.example .env.local
+# Edit .env.local and fill in the required values (see below)
+```
+
+---
+
+## Environment Setup
+
+Copy `.env.example` to `.env.local` and provide real values:
+
+```bash
 cp .env.example .env.local
 ```
 
----
+| Variable | Required | Description |
+|---|---|---|
+| `AUTH_SECRET` | Yes (production) | Long random string for HMAC session signing. Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `ADMIN_PHONE` | Yes | Staff account phone number in Ethiopian format (`09xxxxxxxx`) |
+| `ADMIN_PASSWORD` | Yes | Staff account password (minimum 6 characters) |
+| `ADMIN_NAME` | No | Display name shown in the nav bar for admin (default: "Admin") |
+| `NEXT_PUBLIC_SITE_URL` | Recommended | Canonical public URL, e.g. `https://addis-eats.vercel.app`. Required for correct OG image URLs and sitemaps in production. |
 
-## Environment setup
-
-Edit `.env.local` and set the following values:
-
-```env
-# The canonical public URL of your deployment.
-# Required for correct Open Graph image URLs and sitemap entries.
-# Leave as the placeholder when running locally — only set this for production.
-NEXT_PUBLIC_SITE_URL=https://your-public-domain.example
-
-# Secret used to sign session cookies. Must be a long random string.
-# Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-AUTH_SECRET=replace-with-a-long-random-secret
-
-# Admin credentials — used for kitchen and dashboard access.
-ADMIN_PHONE=09xxxxxxxx
-ADMIN_PASSWORD=replace-with-a-strong-password
-ADMIN_NAME=Addis Eats Admin
-```
+> **Important:** In development, if `AUTH_SECRET` is not set, a hardcoded fallback is used (insecure but functional). In production, the server will refuse to start without `AUTH_SECRET`.
 
 ---
 
-## Local development
+## Local Development
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+The app runs at `http://localhost:3000` by default.
 
 ---
 
-## Production build
+## Production Build and Start
 
 ```bash
 npm run build
@@ -97,115 +103,147 @@ npm run start
 
 ---
 
-## Available routes
+## Available Routes
 
-| Route | Description | Auth |
-|---|---|---|
-| `/` | Homepage with featured dish and contact info | Public |
-| `/menu` | Paginated, searchable dish listing | Public |
-| `/menu/[id]` | Dish detail with JSON-LD structured data | Public |
-| `/about` | Restaurant story | Public |
-| `/cart` | Cart review | Public (data is client-side) |
-| `/checkout` | Place an order | Customer |
-| `/orders` | Order history (sortable, paged) | Customer |
-| `/orders/[id]` | Live order status tracking | Customer (owner only) |
-| `/signin` | Sign in as customer or admin | Public |
-| `/kitchen` | Kitchen order management | Admin |
-| `/kitchen/items` | Menu item management | Admin |
-| `/dashboard` | Revenue and order analytics | Admin |
-
----
-
-## API endpoints
-
-| Method | Path | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/dishes` | All available dishes (or paginated+filtered with `?q=&page=`) | Public |
-| `GET` | `/api/dishes/[id]` | Single dish | Public |
-| `GET` | `/api/dishes/report` | All dishes CSV export | Admin |
-| `GET` | `/api/orders` | Customer's own orders | Customer |
-| `POST` | `/api/orders` | Create an order | Customer |
-| `GET` | `/api/orders/[id]` | Order status (ownership enforced) | Customer (owner) |
-| `GET` | `/api/orders/export` | Customer order history CSV | Customer |
-
----
-
-## Authentication and staff access
-
-**Customer sign-in** — any valid Ethiopian phone number (`09xxxxxxxx` or `+2519xxxxxxxxx`) and a password of 6 or more characters.
-
-**Admin sign-in** — use the `ADMIN_PHONE` and `ADMIN_PASSWORD` values from your `.env.local`. Select "Admin" on the sign-in page.
-
-See [AUTH.md](./AUTH.md) for the full authentication design.
-
----
-
-## Data storage
-
-All data is stored in Node.js process memory. It is pre-seeded with 12 dishes and resets on every server restart. There is no database.
-
----
-
-## SEO
-
-- Root Open Graph image: `app/opengraph-image.jsx` → `/opengraph-image.png`
-- Per-dish Open Graph image: `app/menu/[id]/opengraph-image.jsx`
-- Sitemap: `/sitemap.xml` (generated dynamically from real dish data)
-- Robots: `/robots.txt`
-- JSON-LD structured data: on every dish detail page
-
-See Task 25 of the assignment for post-deployment HTML inspection steps.
-
----
-
-## Lighthouse
-
-Run against a production build:
-
-```bash
-npm run build
-npm run start
-# Open http://localhost:3000 in Chrome → DevTools → Lighthouse → Mobile, Simulated Fast 3G
-```
-
-See [PERF.md](./PERF.md) for image and font optimisation notes.
-
----
-
-## Security testing
-
-| Test | How to run |
+| Route | Description |
 |---|---|
-| Signed-out access to `/kitchen` | Open in a private window — should redirect to sign-in |
-| Customer accessing `/kitchen` | Sign in as customer, navigate to `/kitchen` — should redirect to `/` |
-| Cross-account order access | Retrieve an order ID from account A, then request `/orders/<id>` as account B — should return 404 |
-| Crafted redirect | Visit `/signin?next=https://evil.com` — should redirect to `/menu` after sign-in, not the external URL |
-| Invalid admin password | Enter wrong password on admin sign-in — should show error, no session created |
+| `/` | Home page with featured dish and contact info |
+| `/menu` | Paginated dish listing with live search |
+| `/menu/[id]` | Individual dish detail with JSON-LD structured data |
+| `/about` | Restaurant story page |
+| `/cart` | Shopping cart (localStorage) |
+| `/checkout` | Order placement form (requires customer sign-in) |
+| `/orders` | Customer order history — sortable, paginated (requires sign-in) |
+| `/orders/[id]` | Live order status with SWR polling and SVG delivery map |
+| `/track/[id]` | Live delivery tracking with SSE stream and Leaflet map |
+| `/signin` | Sign-in page (customer and admin) |
+| `/kitchen` | Staff order management dashboard (admin only) |
+| `/kitchen/items` | Menu item management — add, toggle, remove (admin only) |
+| `/dashboard` | Revenue and order analytics (admin only) |
+
+---
+
+## API Endpoints
+
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| GET | `/api/dishes` | None | All available dishes, or paginated + filtered by `?q=&page=` |
+| GET | `/api/dishes/[id]` | None | Single available dish |
+| GET | `/api/dishes/report` | Admin | CSV export of all dishes |
+| GET | `/api/orders` | Customer | Authenticated customer's own orders |
+| POST | `/api/orders` | Customer | Create an order via JSON body |
+| GET | `/api/orders/[id]` | Customer | Single order status (ownership enforced) |
+| GET | `/api/orders/[id]/stream` | Customer | SSE live status stream |
+| GET | `/api/orders/export` | Customer | CSV export of customer order history |
+
+---
+
+## Authentication
+
+### Customer sign-in
+Any valid Ethiopian phone number (`09xxxxxxxx` or `+2519xxxxxxxx`) and a password of 6+ characters creates a customer session. No database lookup is performed — this is demo mode.
+
+```
+Phone:    0912345678   (any valid Ethiopian number)
+Password: password123  (any 6+ character password)
+```
+
+### Admin / Staff sign-in
+Use the values you set in `.env.local`:
+- Phone: value of `ADMIN_PHONE`
+- Password: value of `ADMIN_PASSWORD`
+
+Select "Admin" on the sign-in page before submitting.
+
+---
+
+## Data Storage
+
+All data is stored in-memory using `globalThis` Maps:
+
+- `globalThis.__addisEatsMenu` — dish catalogue (12 seed dishes on first load)
+- `globalThis.__addisEatsOrders` — customer orders
+
+**Data is lost on every server restart.** Orders and dishes are not persisted to a database. This is intentional for a classroom/demo context.
+
+---
+
+## Security Testing
+
+See [AUTH.md](./AUTH.md) for full documentation and test results.
+
+Quick manual tests:
+1. **Signed out:** Visit `http://localhost:3000/checkout` — should redirect to `/signin?next=%2Fcheckout` (proxy.js + layout)
+2. **Signed out:** Visit `http://localhost:3000/orders` — should redirect to `/signin?next=%2Forders`
+3. **Cross-account:** Sign in as customer A, then visit `/orders/[order-id-from-customer-B]` — should return 404
+4. **Open redirect:** Visit `/signin?next=https://evil.com` — after sign-in should redirect to `/menu`, not the external URL
+5. **Customer → kitchen:** Sign in as customer, visit `/kitchen` — should redirect to `/`
+
+---
+
+## Running Lighthouse
+
+```bash
+# 1. Build and start production server
+npm run build
+npm run start
+
+# 2. Open Chrome DevTools → Lighthouse tab
+#    OR use CLI:
+npm install -g lighthouse
+lighthouse http://localhost:3000 --view --preset=desktop
+lighthouse http://localhost:3000/menu --view --preset=desktop
+```
+
+See [PERF.md](./PERF.md) for baseline and post-optimisation measurements.
+
+---
+
+## Social Sharing / Open Graph Images
+
+When shared on Telegram, WhatsApp, Twitter/X, Facebook, or LinkedIn:
+
+- **Home page** (`/`) — uses `/opengraph-image.png` (1200×630, dark branding)
+- **Menu page** (`/menu`) — uses the site-wide OG image
+- **Each dish** (`/menu/[id]`) — uses a per-dish generated image with dish name, description, and price
+
+For OG images to work correctly in production, `NEXT_PUBLIC_SITE_URL` must be set to your real deployed URL (e.g. `https://addis-eats.vercel.app`). Without it, the image URLs will be relative and social media crawlers cannot fetch them.
 
 ---
 
 ## Deployment
 
-Deploy to Vercel (recommended):
+### Vercel (recommended)
 
 ```bash
-npx vercel
+npm install -g vercel
+vercel
 ```
 
-Required environment variables on your hosting platform:
+Set these environment variables in the Vercel project settings:
+- `AUTH_SECRET` — long random secret
+- `ADMIN_PHONE` — admin phone number
+- `ADMIN_PASSWORD` — admin password
+- `ADMIN_NAME` — admin display name (optional)
+- `NEXT_PUBLIC_SITE_URL` — your Vercel deployment URL (e.g. `https://addis-eats.vercel.app`)
 
-- `AUTH_SECRET`
-- `ADMIN_PHONE`
-- `ADMIN_PASSWORD`
-- `ADMIN_NAME` (optional)
-- `NEXT_PUBLIC_SITE_URL` — set to your real production domain (e.g. `https://addis-eats.vercel.app`)
-
-Deployed URL: _not yet deployed — add URL here after first deployment_
+> **Deployed URL:** Not yet deployed. Set `NEXT_PUBLIC_SITE_URL` once you have a production domain.
 
 ---
 
-## Related documents
+## Documentation
 
-- [AUTH.md](./AUTH.md) — Authentication design and security model
-- [DATA.md](./DATA.md) — Data layer, queries, SWR patterns, and validation
-- [PERF.md](./PERF.md) — Performance notes and Lighthouse testing instructions
+- [AUTH.md](./AUTH.md) — Authentication design, security model, and attack test results
+- [DATA.md](./DATA.md) — Data layer, query flows, SWR patterns, and API validation
+- [PERF.md](./PERF.md) — Lighthouse performance measurements and optimisation changes
+
+---
+
+## Known Limitations
+
+- In-memory data is lost on server restart (no database)
+- Customer authentication accepts any valid phone format + 6-char password (demo mode, no OTP)
+- Sessions are not revocable before 7-day expiry (no server-side session store)
+- No rate limiting on the sign-in endpoint
+- No email/SMS order notifications
+- Image upload is not supported — dish images must be placed in `/public/images/`

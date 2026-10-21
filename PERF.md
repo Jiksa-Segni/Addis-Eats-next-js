@@ -1,83 +1,114 @@
-# PERF.md — Performance Notes
+# PERF.md — Performance Optimisation
 
-## Environment
+## Testing Method
 
-- Framework: Next.js 16.4.0 (App Router)
-- Runtime: Node.js on Windows (development), Vercel (target production)
-- Build command: `npm run build`
-- Start command: `npm run start`
+Lighthouse measurements must be taken against a **production build** (`npm run build && npm run start`), not the development server. The dev server uses Turbopack without minification and produces artificially low scores.
 
----
+### How to Run Lighthouse
 
-## Lighthouse testing method
-
-Lighthouse should be run against a **production build** (`npm run build && npm run start`), not the development server. The dev server has unoptimised bundles that skew scores significantly.
-
-```
+```bash
+# Build and start production server
 npm run build
 npm run start
-# Open http://localhost:3000 in Chrome DevTools → Lighthouse
-# Device: Mobile emulation
-# Throttling: Simulated 4x CPU slowdown, Fast 3G
+
+# Option A — Chrome DevTools
+# Open http://localhost:3000 in Chrome
+# DevTools → Lighthouse → Mode: Navigation → Device: Desktop → Analyse page load
+
+# Option B — CLI
+npm install -g lighthouse
+lighthouse http://localhost:3000 --preset=desktop --view
+lighthouse http://localhost:3000/menu --preset=desktop --view
 ```
 
-> No Lighthouse scores are recorded in this document because no production build was run against a deployed environment at the time of writing. Fabricated numbers are not included. Run the above steps and record actual results here.
+### Test Conditions (standardise these for repeatable results)
+
+| Setting | Value |
+|---|---|
+| Device emulation | Desktop (1350×940, no throttle) |
+| Network throttling | None (localhost) |
+| CPU throttling | None |
+| Build | Production (`npm run build`) |
+| Date | Record the date when you run the test |
 
 ---
 
-## Image optimisation
+## Baseline Measurements (Before Optimisations)
 
-All images use the Next.js `<Image>` component (`next/image`), which provides:
+> Lighthouse measurements require a running browser. This project is developed on Windows without a headless browser available in the automated build environment.
+>
+> **To collect baseline values:** Run `npm run build && npm run start`, then open Chrome DevTools → Lighthouse on `http://localhost:3000` and `http://localhost:3000/menu`. Record the scores in the table below before making any optimisation changes.
 
-- Automatic WebP/AVIF conversion.
-- Lazy loading by default (`loading="lazy"`).
-- `priority` prop set on above-the-fold images (home hero, dish detail header, first card on menu page with `index === 0`).
-- Explicit `width` and `height` to prevent Cumulative Layout Shift (CLS).
-- `sizes` attribute on menu grid cards: `"(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"` for correct responsive srcset.
-
-### Image dimensions in use
-
-| Location | width | height | priority |
-|---|---|---|---|
-| Home hero (featured dish) | 640 | 420 | yes |
-| Menu card | 640 | 420 | first card only |
-| Dish detail header | 960 | 600 | yes |
-
----
-
-## Font optimisation
-
-Google Fonts (Geist Sans, Geist Mono) are loaded via `next/font/google`, which:
-
-- Downloads fonts at build time and self-hosts them (no third-party DNS lookup at runtime).
-- Inlines the `@font-face` CSS in the `<head>` (no render-blocking stylesheet).
-- Uses `font-display: swap` automatically.
+| Metric | Route | Before | After | Difference | Notes |
+|---|---|---|---|---|---|
+| Performance score | `/` | — | — | — | Run Lighthouse to fill |
+| LCP | `/` | — | — | — | Run Lighthouse to fill |
+| CLS | `/` | — | — | — | Run Lighthouse to fill |
+| INP | `/` | — | — | — | Run Lighthouse to fill |
+| Performance score | `/menu` | — | — | — | Run Lighthouse to fill |
+| LCP | `/menu` | — | — | — | Run Lighthouse to fill |
+| CLS | `/menu` | — | — | — | Run Lighthouse to fill |
+| INP | `/menu` | — | — | — | Run Lighthouse to fill |
 
 ---
 
-## Third-party scripts
+## Optimisations Applied
 
-No third-party analytics or tracking scripts are loaded. No `<Script>` components with `strategy="beforeInteractive"` exist.
+### 1. Image Optimisation (§12) — Already implemented
+
+All images in the application use Next.js `next/image` (`Image` component):
+
+- **`app/page.js`** — Featured dish image uses `priority` (above-the-fold LCP candidate), `width={640}`, `height={420}`, meaningful `alt` text.
+- **`app/menu/SearchBox.jsx`** — Dish grid images use `sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"`, `priority={index === 0}` on the first card only, `width={640}`, `height={420}`.
+- **`app/menu/[id]/page.js`** — Dish detail hero uses `priority`, `width={960}`, `height={600}`.
+
+**Impact:** Eliminates layout shift from unsized images (reduces CLS). Automatic format conversion to WebP/AVIF reduces transfer size. Lazy loading for below-fold images reduces LCP.
+
+### 2. Font Optimisation (§13) — Already implemented
+
+Fonts are loaded via `next/font/google` in `app/layout.js`:
+
+```js
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",       // prevents FOIT — text is visible during font load
+  fallback: ["system-ui", "arial"],
+});
+```
+
+**Change made:** Added `display: "swap"` and `fallback` arrays to both `geistSans` and `geistMono`. This was missing from the original configuration.
+
+**Impact:** `display: swap` prevents invisible text during font load (removes FOIT). Fallback fonts keep layout stable, reducing CLS. Next.js automatically self-hosts the font files and sets long-lived cache headers.
+
+### 3. Third-party Scripts (§14)
+
+No third-party scripts (analytics, ads, tracking) are included in this project. There are no manually inserted `<script>` tags that need to be migrated to `next/script`.
+
+The only external resource at runtime is:
+- **OpenStreetMap tiles** in `DeliveryMap.jsx` — loaded by Leaflet via `<img>` tags it manages internally. These are lazy-loaded by Leaflet and do not appear in the initial page load critical path.
+- **Leaflet marker icons** from `unpkg.com` — small PNG files loaded after the Leaflet chunk, not blocking.
+
+**No changes required for third-party scripts.**
+
+### 4. OG Image Generation (§20, §21) — Verified
+
+`app/opengraph-image.jsx` and `app/menu/[id]/opengraph-image.jsx` use `ImageResponse` from `next/og`. These generate 1200×630 PNG images at build time with no external dependencies.
+
+**Social sharing:** For Telegram, WhatsApp, and other crawlers to display the preview image, `NEXT_PUBLIC_SITE_URL` must be set to the public production domain. With `metadataBase` set to this URL, all relative `/opengraph-image.png` paths become absolute in the rendered `<meta>` tags.
 
 ---
 
-## Open Graph image generation
+## Remaining Measurements
 
-`app/opengraph-image.jsx` and `app/menu/[id]/opengraph-image.jsx` use `ImageResponse` from `next/og`. These are generated at build time for static routes and on-demand for dynamic routes. They do not depend on external image fetches, so they are build-environment-safe.
+The before/after Lighthouse table above requires manual execution. Steps:
 
----
-
-## Caching
-
-- Menu listing page: `export const revalidate = 3600` (1-hour ISR). New dishes added by admin trigger `revalidatePath("/menu")` which invalidates the cache immediately.
-- Dish detail pages: `export const dynamic = "force-dynamic"` (always fresh, avoids stale data after admin edits).
-- Kitchen, orders, dashboard: all `force-dynamic`.
-
----
-
-## Remaining work
-
-- No Lighthouse scores recorded — must be run against a deployed production build.
-- LCP, CLS, and INP values are unknown until measured.
-- A `<link rel="preload">` for the hero image on the home page could be added if LCP is not meeting target.
-- Bundle analysis (`@next/bundle-analyzer`) has not been run; Recharts adds ~80 kB (minified+gzip) to the dashboard chunk.
+1. `npm run build`
+2. `npm run start`
+3. Open Chrome, navigate to `http://localhost:3000`
+4. DevTools → Lighthouse → Desktop → Analyse
+5. Record: Performance score, LCP, CLS, INP
+6. Repeat for `http://localhost:3000/menu`
+7. Fill in the "Before" column in the table above
+8. The "After" column applies the same measurement after any further optimisations
+9. The existing codebase already applies all optimisations listed above, so Before ≈ After for this project state

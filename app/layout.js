@@ -24,17 +24,22 @@ export const siteUrl =
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  fallback: ["system-ui", "arial"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+  fallback: ["Courier New", "monospace"],
 });
 
 export const metadata = {
   /**
    * metadataBase makes all relative image URLs in metadata absolute.
    * It must be set to the canonical public URL of the deployment.
+   * This is what makes Open Graph images work on Telegram, Twitter, Facebook, etc.
    */
   metadataBase: new URL(siteUrl),
 
@@ -74,6 +79,7 @@ export const metadata = {
     /**
      * /opengraph-image.png is generated at build time by app/opengraph-image.jsx.
      * The URL is resolved against metadataBase so it becomes absolute automatically.
+     * This absolute URL is what Telegram, WhatsApp, Facebook, and Twitter crawlers fetch.
      */
     images: [
       {
@@ -90,7 +96,7 @@ export const metadata = {
     title: "Addis Eats — Authentic Ethiopian Food in Addis Ababa",
     description:
       "Fresh Ethiopian dishes prepared daily and available for online ordering in Addis Ababa.",
-    images: ["/opengraph-image.png"],
+    images: [new URL("/opengraph-image.png", siteUrl).toString()],
   },
 };
 

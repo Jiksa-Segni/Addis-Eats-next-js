@@ -39,7 +39,7 @@ Data is seeded at module-load time and survives Next.js hot-reloads (because `gl
 
 ### `getAllDishes()`
 - Returns all dishes regardless of availability.
-- Used by admin only: `app/api/dishes/report/route.js` (CSV export).
+- Used by admin only: `app/api/dishes/report/route.js` (CSV export), `app/kitchen/items/page.js`.
 
 ---
 
@@ -64,29 +64,37 @@ Data is seeded at module-load time and survives Next.js hot-reloads (because `gl
 - Used by: `app/orders/[id]/page.js` (ownership check), Server Actions (`cancelOrder`, `updateKitchenOrderStatus`), `GET /api/orders/[id]`.
 - Callers must check `order.userId === session.id` before returning data to customers.
 
-### `getPublicOrderById(id)` *(deprecated in Day 48)*
-- Was used by the unauthenticated polling endpoint. Replaced by session-verified ownership check in `GET /api/orders/[id]`.
-
 ### `getOrders()`
 - Returns all orders. Used by admin only: `app/kitchen/page.js`, `app/dashboard/page.js`.
 
 ---
 
-## Order status polling (Task 26)
+## Order status polling (§26)
 
 - **Endpoint**: `GET /api/orders/[id]`
 - **Authentication**: requires a valid customer session; returns `401` otherwise.
 - **Ownership**: returns `404` for orders that do not belong to the requesting customer.
 - **Client component**: `app/orders/[id]/OrderStatus.js`
 - **SWR key**: `/api/orders/<id>`
-- **Polling interval**: 5 000 ms — set to `0` when status is `"completed"` or `"cancelled"` (terminal).
+- **Polling interval**: 3 000 ms during `preparing`, 2 000 ms during `on_the_way`, 5 000 ms otherwise. Set to `0` when status is `"completed"`, `"delivered"`, or `"cancelled"` (terminal).
 - **Initial data**: the server component (`app/orders/[id]/page.js`) passes `publicOrder` as `fallbackData` so the page is meaningful before the first poll resolves.
 - **Error state**: `role="alert"` banner with the error message.
 - **`aria-live="polite"`** on the status region so screen readers announce status changes.
 
 ---
 
-## Debounced menu search (Task 27)
+## SSE live stream (alternative to polling on `/track/[id]`)
+
+- **Endpoint**: `GET /api/orders/[id]/stream`
+- **Authentication**: customer session + ownership enforced before stream opens.
+- **Client component**: `app/track/[id]/TrackPage.jsx` via native `EventSource` API.
+- **Events**: `status` (update), `done` (terminal — client closes connection), `error`.
+- **Leaflet map**: loaded with `dynamic(() => import("./DeliveryMap"), { ssr: false })` to prevent server-side import of `leaflet` (which accesses `window`).
+- **Connection indicator**: coloured dot (connecting / live / error / closed).
+
+---
+
+## Debounced menu search (§27)
 
 - **Component**: `app/menu/SearchBox.jsx`
 - **Debounce**: 300 ms via `setTimeout` / `clearTimeout` in a `useEffect`.
@@ -98,7 +106,7 @@ Data is seeded at module-load time and survives Next.js hot-reloads (because `gl
 
 ---
 
-## Paged dish listing (Task 28)
+## Paged dish listing (§28)
 
 - Page is stored in the URL query parameter `?page=N`.
 - `app/menu/page.js` reads `searchParams.page`, validates it (`Number.isSafeInteger`, ≥ 1), and redirects out-of-range values.
@@ -107,7 +115,7 @@ Data is seeded at module-load time and survives Next.js hot-reloads (because `gl
 
 ---
 
-## Dashboard aggregation (Task 30)
+## Dashboard aggregation (§30)
 
 - **Component**: `app/dashboard/page.js` (server component).
 - **Data source**: `getOrders()` — all orders.
@@ -119,7 +127,7 @@ Data is seeded at module-load time and survives Next.js hot-reloads (because `gl
 
 ---
 
-## Order table (Task 32)
+## Order table (§32)
 
 - **Server component** (`app/orders/page.js`): authenticates, fetches, sorts, paginates.
 - **Client component** (`app/orders/OrderTable.jsx`): renders the table, handles sort/page URL updates.
@@ -140,3 +148,25 @@ All API routes validate incoming data using Zod (`lib/schema.js`):
 - Sort parameters for the order table are validated server-side against an explicit allowlist.
 
 Prices and totals are **never trusted from the browser**. `resolveOrderItems()` always recalculates from the server's dish store.
+
+---
+
+## Authentication and session
+
+All authentication uses `lib/auth.js`:
+
+- `getSession()` — reads and verifies the HMAC-signed session cookie. Returns `null` if missing, malformed, expired, or tampered.
+- `setSession(user)` — creates a signed token and writes the `httpOnly` cookie.
+- `clearSession()` — deletes the session cookie.
+
+The session user object passed across server/client boundaries is the `initialUser` prop on `<Providers>`, set from `getSession()` in `app/layout.js`. Client components never call `getSession()` directly.
+
+---
+
+## Route protection layers
+
+1. **Proxy** (`proxy.js`) — presence + expiry check at the Edge, redirects to `/signin` for `/checkout`, `/orders`, `/kitchen`, `/dashboard` routes. In Next.js 16, the proxy file replaces middleware.js.
+2. **Page/action level** — full HMAC + role verification via `getSession()` in every protected server component and Server Action.
+3. **Data ownership** — per-resource ownership check (`order.userId === session.id`) on every read and write.
+
+See [AUTH.md](./AUTH.md) for the full three-layer security model documentation.

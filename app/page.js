@@ -1,6 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getDishes } from "@/lib/dishes";
+import { jsonLd, shareImage, siteUrl } from "@/app/seo";
+
+const restaurantSchema = {
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  name: "Addis Eats",
+  description: "Ethiopian restaurant in Addis Ababa serving Doro Wet, Kitfo, Shiro, Tibs, and more.",
+  url: siteUrl,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Bole Road, near the city center",
+    addressLocality: "Addis Ababa",
+    addressCountry: "ET",
+  },
+  telephone: "+251112223344",
+  openingHours: "Mo-Su 09:00-23:00",
+  servesCuisine: "Ethiopian",
+};
 
 export const metadata = {
   title: "Ethiopian Food in Addis Ababa",
@@ -10,6 +28,21 @@ export const metadata = {
     title: "Addis Eats — Ethiopian Food in Addis Ababa",
     description:
       "Order fresh Ethiopian dishes online from Addis Eats. Doro Wet, Kitfo, Shiro, Tibs, fresh juices, and more — delivered in Addis Ababa.",
+    images: [
+      {
+        url: shareImage,
+        width: 1200,
+        height: 630,
+        alt: "Addis Eats — Fresh Ethiopian food served daily in Addis Ababa",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Addis Eats — Ethiopian Food in Addis Ababa",
+    description:
+      "Order fresh Ethiopian dishes online from Addis Eats. Doro Wet, Kitfo, Shiro, Tibs, fresh juices, and more — delivered in Addis Ababa.",
+    images: [shareImage],
   },
 };
 

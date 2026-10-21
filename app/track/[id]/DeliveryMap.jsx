@@ -79,6 +79,21 @@ const DEST_ICON = L.divIcon({
   popupAnchor: [0, -22],
 });
 
+const DEST_ARRIVED_ICON = L.divIcon({
+  html: `<div style="
+    width:48px;height:48px;border-radius:50%;
+    background:#0d9488;border:4px solid #fff;
+    box-shadow:0 0 0 6px rgba(13,148,136,0.25), 0 2px 12px rgba(13,148,136,0.5);
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;line-height:1;
+    animation:destPulse 1s ease-out;
+  ">🎉</div>`,
+  className: "",
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
+  popupAnchor: [0, -28],
+});
+
 const REST_ICON = L.divIcon({
   html: `<div style="
     width:38px;height:38px;border-radius:50%;
@@ -180,15 +195,15 @@ export default function DeliveryMap({ status, address }) {
     const prev = prevStatus.current;
     prevStatus.current = status;
 
-    // Cancel any in-flight animation
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      animStart.current = null;
-    }
-
     if (status === "on_the_way" && prev !== "on_the_way") {
       // ── Animated journey: restaurant → destination over 5 seconds ──────
+      // Cancel any leftover animation (safety net)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        animStart.current = null;
+      }
+
       const startLat = RESTAURANT.lat;
       const startLng = RESTAURANT.lng;
       fromLatLng.current = { lat: startLat, lng: startLng };
@@ -216,29 +231,46 @@ export default function DeliveryMap({ status, address }) {
         if (t < 1) {
           rafRef.current = requestAnimationFrame(animateStep);
         } else {
-          // Animation complete — snap to exact destination
+          // Animation complete — snap exactly to destination pin
           courier.setLatLng([dest.lat, dest.lng]);
           rafRef.current = null;
           animStart.current = null;
+          // Swap destination marker to celebration icon and zoom in
+          destRef.current?.setIcon(DEST_ARRIVED_ICON);
+          destRef.current?.openPopup();
+          map.flyTo([dest.lat, dest.lng], 15, { duration: 0.8 });
         }
       }
 
       rafRef.current = requestAnimationFrame(animateStep);
 
     } else if ((status === "delivered" || status === "completed") && prev === "on_the_way") {
-      // ── Delivered while animation may still be running ────────────────
-      // The animation was already started by on_the_way. Do NOT restart it
-      // here — let it finish naturally (it ends 1 s after this event).
-      // Just zoom in towards the destination so the arrival is visible.
-      map.flyTo([dest.lat, dest.lng], 15, { duration: 1.0 });
+      // ── Delivered fires at t=4s while the 5s animation is still running ──
+      // Do NOT cancel rafRef — let the animation finish naturally over 1 more second.
+      // Just zoom toward destination so the arrival is visible.
+      map.flyTo([dest.lat, dest.lng], 15, { duration: 1.2 });
 
     } else if (TERMINAL.has(status) && prev !== "on_the_way") {
-      // Terminal reached without going through on_the_way animation
+      // Terminal reached without going through on_the_way (page loaded late,
+      // or cancelled). Cancel any animation and snap courier to destination.
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        animStart.current = null;
+      }
       courier.setLatLng([dest.lat, dest.lng]);
+      if (status !== "cancelled") {
+        destRef.current?.setIcon(DEST_ARRIVED_ICON);
+      }
       map.flyTo([dest.lat, dest.lng], 15, { duration: 1.0 });
 
     } else if (!TERMINAL.has(status) && status !== "on_the_way") {
-      // Reset courier to restaurant for non-delivery statuses
+      // Pre-delivery statuses — reset courier to restaurant
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        animStart.current = null;
+      }
       courier.setLatLng([RESTAURANT.lat, RESTAURANT.lng]);
       map.flyTo([RESTAURANT.lat, RESTAURANT.lng], 13, { duration: 0.8 });
     }

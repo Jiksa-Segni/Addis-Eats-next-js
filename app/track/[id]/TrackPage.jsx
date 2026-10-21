@@ -27,20 +27,21 @@
  * - Closes when the `done` event arrives (terminal status).
  * - Closes on component unmount (navigation away from page).
  *
+ * TIMING (synchronized with OrderStatus.js):
+ *   t=0s   preparing detected  → 3 s timer starts
+ *   t=3s   on_the_way fires    → map animation starts (5 s), 4 s timer starts
+ *   t=7s   delivered fires     → banner appears, map still animating (1 s left)
+ *   t=8s   map animation ends  → rider arrives exactly on destination pin
+ *
  * ACCESSIBILITY
  * ─────────────
  * The map is a visual aid only. Every piece of information shown on the map
- * is also presented in the text panel beside it:
- * - Current status (aria-live="polite" for screen-reader announcements)
- * - Delivery address
- * - Placed / updated timestamps (formatted with lib/format.js)
- * - Step-by-step progress
+ * is also presented in the text panel beside it.
  *
  * CSV EXPORT
  * ──────────
  * The "Download history" button calls downloadCsv from lib/csv.js directly
- * in the browser — no round-trip to the server. The order rows are passed
- * as a prop from the server component.
+ * in the browser — no round-trip to the server.
  */
 
 import dynamic from "next/dynamic";
@@ -48,6 +49,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { downloadCsv } from "@/lib/csv";
 import { etb, when, relative } from "@/lib/format";
+import { advanceDeliveryStatus } from "@/app/actions";
 
 // Load Leaflet map only in the browser — ssr:false prevents the server from
 // trying to import leaflet (which calls window/document and throws).
@@ -161,6 +163,7 @@ export default function TrackPage({ id, initial, historyRows }) {
   // ── Auto-advance delivery timers ──────────────────────────────────────
   // Mirrors OrderStatus.js exactly — keeps /track/[id] in sync with
   // /orders/[id] regardless of which page the customer has open.
+  // Both pages call advanceDeliveryStatus so the server + kitchen stay in sync.
   const status = order?.status ?? "received";
 
   useEffect(() => {
@@ -174,32 +177,43 @@ export default function TrackPage({ id, initial, historyRows }) {
 
     // preparing → on_the_way after 3 s
     if (status === "preparing" && prev !== "preparing") {
-      timerRef.current = setTimeout(() => {
+      timerRef.current = setTimeout(async () => {
         setOrder((prev) => ({
           ...prev,
           status: "on_the_way",
           updatedAt: new Date().toISOString(),
         }));
+        try {
+          await advanceDeliveryStatus(id, "on_the_way");
+        } catch {
+          // Server already advanced or race condition — SSE will correct state
+        }
       }, PREPARING_TO_ON_THE_WAY_MS);
     }
 
     // on_the_way → delivered after 4 s
-    // Map animation (5 s) starts simultaneously — finishes 1 s after the
-    // delivered banner appears, so the rider visibly arrives on the pin.
+    // Map animation (5 s) starts simultaneously in DeliveryMap.jsx —
+    // finishes 1 s after the delivered banner appears so the rider
+    // visibly arrives on the pin.
     if (status === "on_the_way" && prev !== "on_the_way") {
-      timerRef.current = setTimeout(() => {
+      timerRef.current = setTimeout(async () => {
         setOrder((prev) => ({
           ...prev,
           status: "delivered",
           updatedAt: new Date().toISOString(),
         }));
+        try {
+          await advanceDeliveryStatus(id, "delivered");
+        } catch {
+          // Server already advanced
+        }
       }, ON_THE_WAY_TO_DELIVERED_MS);
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [status]);
+  }, [status, id]);
   const address = order?.address ?? initial?.address;
   const stepIndex = STEP_INDEX[status] ?? 0;
   const isCancelled = status === "cancelled";

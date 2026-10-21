@@ -1,3 +1,5 @@
+import { shareImage } from "@/app/seo";
+
 export const metadata = {
   title: "About Our Ethiopian Restaurant",
   description:
@@ -6,6 +8,21 @@ export const metadata = {
     title: "About Addis Eats",
     description:
       "Discover the people and passion behind Addis Eats, serving traditional Ethiopian food in Addis Ababa.",
+    images: [
+      {
+        url: shareImage,
+        width: 1200,
+        height: 630,
+        alt: "About Addis Eats — authentic Ethiopian food in Addis Ababa",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Addis Eats",
+    description:
+      "Discover the people and passion behind Addis Eats, serving traditional Ethiopian food in Addis Ababa.",
+    images: [shareImage],
   },
 };
 

@@ -99,8 +99,8 @@ function lerp(a, b, t) {
 function DeliveryMap({ status, address }) {
   const dest = getDestCoords(address);
   const rafRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const ANIM_DURATION = MAP_ANIMATION_MS; // 5 seconds — synchronized with timer chain
+  const startTimeRef = useRef(null);   // when on_the_way animation started
+  const ANIM_DURATION = MAP_ANIMATION_MS; // 5 seconds
 
   const [markerPos, setMarkerPos] = useState({ x: RESTAURANT.x, y: RESTAURANT.y });
   const [arrived, setArrived] = useState(false);
@@ -110,14 +110,13 @@ function DeliveryMap({ status, address }) {
     const prev = prevStatusRef.current;
     prevStatusRef.current = status;
 
-    // Cancel any ongoing animation when status changes
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-
-    if (status === "on_the_way") {
-      // Animate from restaurant → destination over 5 seconds
+    if (status === "on_the_way" && prev !== "on_the_way") {
+      // ── Start 5-second animation: restaurant → destination ──────────────
+      // Cancel any leftover animation (shouldn't exist, but safety net)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       setArrived(false);
       startTimeRef.current = null;
       const fromX = RESTAURANT.x;
@@ -136,18 +135,37 @@ function DeliveryMap({ status, address }) {
         if (t < 1) {
           rafRef.current = requestAnimationFrame(animate);
         } else {
+          // Animation complete — snap to exact destination and mark arrived
           setMarkerPos({ x: dest.x, y: dest.y });
+          setArrived(true);
           rafRef.current = null;
         }
       }
 
       rafRef.current = requestAnimationFrame(animate);
-    } else if (status === "delivered" || status === "completed") {
-      // Snap to destination and mark as arrived
+
+    } else if ((status === "delivered" || status === "completed") && prev === "on_the_way") {
+      // ── Delivered fires at t=4s while the 5s animation is still running ──
+      // Do NOT cancel the rAF — let it finish naturally over the next 1 s.
+      // Just mark arrived so the banner appears immediately.
+      setArrived(true);
+
+    } else if ((status === "delivered" || status === "completed") && prev !== "on_the_way") {
+      // Arrived at terminal without going through the animation (e.g. page
+      // loaded after order was already delivered). Snap straight to dest.
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       setMarkerPos({ x: dest.x, y: dest.y });
       setArrived(true);
+
     } else if (status === "received" || status === "preparing" || status === "ready") {
-      // Reset to restaurant
+      // Pre-delivery — reset courier to restaurant
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       setMarkerPos({ x: RESTAURANT.x, y: RESTAURANT.y });
       setArrived(false);
     }
