@@ -2,6 +2,11 @@
 const nextConfig = {
   reactCompiler: true,
 
+  // Allow the dev server's HMR socket to be reached from other hosts on the
+  // local network (e.g. testing the app on a phone at http://10.101.0.211:3000).
+  // Dev-only — ignored by `next start` in production.
+  allowedDevOrigins: ["10.101.0.211"],
+
   turbopack: {
     rules: {
       "*.css": {
