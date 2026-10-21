@@ -1,6 +1,6 @@
 # Addis Eats
 
-A full-featured Ethiopian restaurant ordering platform built with **Next.js 16 App Router**, React 19, Tailwind CSS 4, and a custom HMAC-signed session authentication system.
+A full-featured Ethiopian restaurant ordering platform built with **Next.js  App Router**, React 19, Tailwind CSS 4, and a custom HMAC-signed session authentication system.
 
 ---
 
